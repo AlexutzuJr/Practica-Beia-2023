@@ -1,0 +1,19 @@
+import time
+
+mqttBroker = "mqtt.beia-telemetrie.ro"
+port = 1883
+#client = mqtt.Client("training/device/Alex-Dinu")
+#client.connect(mqttBroker)
+topic = "training/device/Alex-Dinu"
+
+while True:
+        value=randint(0,10)
+        payload_dict = {"nr_rand": value}
+        try:
+            mqtt.single(topic, qos=1, hostname=mqttBroker, payload=json.dumps(payload_dict))
+        except:
+            pass
+        #json.dumps(payload_dict)
+        #client.publish(topic, payload_dict)
+        print(value)
+        time.sleep(30)
