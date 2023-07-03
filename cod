@@ -1,19 +1,24 @@
 import time
+import json
+from random import randint
+import paho.mqtt.publish as mqtt
 
+#Setari MQTT
 mqttBroker = "mqtt.beia-telemetrie.ro"
 port = 1883
-#client = mqtt.Client("training/device/Alex-Dinu")
-#client.connect(mqttBroker)
-topic = "training/device/Alex-Dinu"
+topic = "training/device/DinuAlexandru"
 
+#Functia pentru generarea numarului aleator
+def random_number():
+    return randint(0, 10)
+
+#Generarea numarului aleator
 while True:
-        value=randint(0,10)
-        payload_dict = {"nr_rand": value}
-        try:
-            mqtt.single(topic, qos=1, hostname=mqttBroker, payload=json.dumps(payload_dict))
-        except:
-            pass
-        #json.dumps(payload_dict)
-        #client.publish(topic, payload_dict)
-        print(value)
-        time.sleep(30)
+    value = random_number()
+    payload_dict = {"random_number": value}
+    try:
+        mqtt.single(topic, qos=1, hostname=mqttBroker, payload=json.dumps(payload_dict))
+    except:
+        pass
+    print(value)
+    time.sleep(10)
