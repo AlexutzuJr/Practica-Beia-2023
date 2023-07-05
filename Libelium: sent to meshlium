@@ -1,0 +1,114 @@
+#include <WaspWIFI_PRO_V3.h>
+#include <WaspFrame.h>
+
+
+// choose socket (SELECT USER'S SOCKET)
+///////////////////////////////////////
+uint8_t socket = SOCKET0;
+///////////////////////////////////////
+
+
+// choose HTTP server settings
+///////////////////////////////////////
+char type[] = "http";
+char host[] = "82.78.81.178";
+uint16_t port = 80;
+///////////////////////////////////////
+
+uint8_t error;
+uint8_t status;
+
+// define the Waspmote ID 
+char moteID[] = "AlexandruDinu";
+
+void setup()
+{
+  USB.println(F("Start program"));
+
+  USB.println(F("***************************************"));
+  USB.println(F("It is assumed the module was previously"));
+  USB.println(F("configured in autoconnect mode and with"));
+  USB.println(F("the Meshlium AP settings."));
+  USB.println(F("Once the module is configured with the"));
+  USB.println(F("AP settings, it attempts to join the AP"));
+  USB.println(F("automatically once it is powered on"));
+  USB.println(F("Refer to example 'WIFI_02' to configure"));
+  USB.println(F("the WiFi module with proper settings"));
+  USB.println(F("***************************************"));
+
+  // set the Waspmote ID
+  frame.setID(moteID);  
+}
+
+
+
+void loop()
+{
+  
+  //////////////////////////////////////////////////
+  // 1. Switch ON
+  //////////////////////////////////////////////////  
+  error = WIFI_PRO_V3.ON(socket);
+
+  if (error == 0)
+  {    
+    USB.println(F("WiFi switched ON"));
+  }
+  else
+  {
+    USB.println(F("WiFi did not initialize correctly"));
+  }
+
+  // check connectivity
+  status =  WIFI_PRO_V3.isConnected();
+
+  // check if module is connected
+  if (status == true)
+  {
+    ///////////////////////////////
+    // 3.1. Create a new Frame 
+    ///////////////////////////////
+    
+    // create new frame (only ASCII)
+    frame.createFrame(ASCII); 
+
+    // add sensor fields
+    frame.addSensor(SENSOR_BAT, PWR.getBatteryLevel());
+
+    // print frame
+    frame.showFrame();  
+
+
+    ///////////////////////////////
+    // 3.2. Send Frame to Meshlium
+    ///////////////////////////////
+
+    // http frame
+    error = WIFI_PRO_V3.sendFrameToMeshlium( type, host, port, frame.buffer, frame.length);
+
+    // check response
+    if (error == 0)
+    {
+      USB.println(F("Send frame to meshlium done"));
+    }
+    else
+    {
+      USB.println(F("Error sending frame"));
+      if (WIFI_PRO_V3._httpResponseStatus)
+      {
+        USB.print(F("HTTP response status: "));  
+        USB.println(WIFI_PRO_V3._httpResponseStatus);  
+      }
+    }
+  }
+  else
+  {
+    USB.print(F("2. WiFi is connected ERROR"));
+  }
+  //////////////////////////////////////////////////
+  // 3. Switch OFF
+  //////////////////////////////////////////////////  
+  WIFI_PRO_V3.OFF(socket);
+  USB.println(F("WiFi switched OFF\n\n")); 
+  delay(10000);
+}
