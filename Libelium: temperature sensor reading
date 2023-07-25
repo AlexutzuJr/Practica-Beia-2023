@@ -3,20 +3,23 @@
 #include <WaspSensorSW.h>
 
 //choose socket (SELECT USER'S SOCKET)
-uint8_t socket = SOCKET0;
+const uint8_t SOCKET_NUMBER = SOCKET0;
 
 //choose HTTP server settings
-char type[] = "http";
-char host[] = "82.78.81.178";
-uint16_t port = 80;
+const char HTTP_TYPE[] = "http";
+const char SERVER_HOST[] = "82.78.81.178";
+const uint16_t SERVER_PORT = 80;
 
 uint8_t error;
 uint8_t status;
 
 //define the Waspmote ID
-char moteID[] = "DinuAlexandru";
+const char MOTE_ID[] = "DinuAlexandru";
 
-float value_temp;
+const int SENSOR_READ_DELAY = 2000;
+const int WIFI_CONNECT_DELAY = 10000;
+
+float temperatureValue;
 
 //Calibration values
 #define cal_point_10 1.985
@@ -39,7 +42,7 @@ float value_temp;
 
 pt1000Class TemperatureSensor;
 
-void setup()
+void setup() 
 {
   USB.ON();
   USB.println(F("Frame Utility Example for Smart Water"));
@@ -50,22 +53,22 @@ void setup()
   USB.println(F("******************************************************"));
 
   //Set the Waspmote ID
-  frame.setID(moteID); 
+  frame.setID(MOTE_ID);
 }
 
-void loop()
+void loop() 
 {
   //1. Turn on the board
   Water.ON();
-  delay(2000);
+  delay(SENSOR_READ_DELAY);
 
   //2. Read sensors
 
   //Read the temperature sensor
-  value_temp = TemperatureSensor.readTemperature();
-  
+  temperatureValue = TemperatureSensor.readTemperature();
+
   //3. Turn off the sensors
-   Water.OFF();
+  Water.OFF();
 
   //4. Create ASCII frame
 
@@ -73,61 +76,48 @@ void loop()
   frame.createFrame(ASCII);
 
   //Add temperature
-  frame.addSensor(SENSOR_WATER_WT, value_temp);
+  frame.addSensor(SENSOR_WATER_WT, temperatureValue);
 
   //Show the frame
   frame.showFrame();
 
   //Wait for 2 seconds
-  delay(2000);
+  delay(SENSOR_READ_DELAY);
 
-  //5. Send Frame to Meshlium
-
-  //Switch ON the WiFi module
-  error = WIFI_PRO_V3.ON(socket);
-
-  if (error == 0)
+  //5. Send Frame to Meshlium via WiFi
+  if (WIFI_PRO_V3.ON(SOCKET_NUMBER) == 0) 
   {
     USB.println(F("WiFi switched ON"));
-  }
-  else
+
+    if (WIFI_PRO_V3.isConnected()) 
+    {
+      if (WIFI_PRO_V3.sendFrameToMeshlium(HTTP_TYPE, SERVER_HOST, SERVER_PORT, frame.buffer, frame.length) == 0) 
+      {
+        USB.println(F("Send frame to Meshlium done"));
+      } 
+      else 
+      {
+        USB.println(F("Error sending frame"));
+        if (WIFI_PRO_V3._httpResponseStatus) 
+        {
+          USB.print(F("HTTP response status: "));
+          USB.println(WIFI_PRO_V3._httpResponseStatus);
+        }
+      }
+    } 
+    else 
+    {
+      USB.println(F("WiFi is not connected"));
+    }
+
+    WIFI_PRO_V3.OFF(SOCKET_NUMBER);
+    USB.println(F("WiFi switched OFF\n\n"));
+  } 
+  else 
   {
     USB.println(F("WiFi did not initialize correctly"));
   }
 
-  //Check connectivity
-  status = WIFI_PRO_V3.isConnected();
-
-  //Check if module is connected
-  if (status == true)
-  {
-    //Send the frame to Meshlium
-    error = WIFI_PRO_V3.sendFrameToMeshlium(type, host, port, frame.buffer, frame.length);
-
-    //Check response
-    if (error == 0)
-    {
-      USB.println(F("Send frame to Meshlium done"));
-    }
-    else
-    {
-      USB.println(F("Error sending frame"));
-      if (WIFI_PRO_V3._httpResponseStatus)
-      {
-        USB.print(F("HTTP response status: "));
-        USB.println(WIFI_PRO_V3._httpResponseStatus);
-      }
-    }
-  }
-  else
-  {
-    USB.println(F("WiFi is not connected"));
-  }
-
-  //Switch OFF the WiFi module
-  WIFI_PRO_V3.OFF(socket);
-  USB.println(F("WiFi switched OFF\n\n"));
-
   //Delay for 10 seconds before next iteration
-  delay(10000);
+  delay(WIFI_CONNECT_DELAY);
 }
